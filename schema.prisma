@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String          @id @default(cuid())
+  email       String          @unique
+  displayName String?
+  photoURL    String?
+  role        String          @default("premium")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  analytics   UserAnalytics?
+  badges      UserBadge[]
+  goals       UserGoal[]
+  recordings  UserRecording[]
+
+  @@map("users")
+}
+
+model UserRecording {
+  id              String   @id @default(cuid())
+  userId          String
+  createdAt       DateTime @default(now())
+  duration        Int
+  audioUrl        String
+  videoUrl        String?
+  fileSize        Int
+  transcription   String
+  confidence      Float
+  speakingPace    Float
+  fillerWordCount Int
+  clarityScore    Float
+  sentimentScore  Float
+  pauseCount      Int
+  averagePause    Float
+  primaryInsight  String
+  improvementTips String[]
+  strengths       String[]
+  weaknesses      String[]
+  practiceType    String   @default("freeform")
+  tags            String[]
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_recordings")
+}
+
+model UserAnalytics {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  totalRecordings     Int       @default(0)
+  totalPracticeTime   Int       @default(0)
+  currentStreak       Int       @default(0)
+  longestStreak       Int       @default(0)
+  lastPracticeDate    DateTime?
+  averageConfidence   Float     @default(0)
+  averagePace         Float     @default(0)
+  averageClarity      Float     @default(0)
+  averageFillers      Float     @default(0)
+  confidenceChange    Float     @default(0)
+  paceChange          Float     @default(0)
+  clarityChange       Float     @default(0)
+  fillerChange        Float     @default(0)
+  weeklyGoalMinutes   Int       @default(60)
+  monthlyGoalSessions Int       @default(12)
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_analytics")
+}
+
+model Badge {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String
+  category    String
+  iconName    String
+  criteria    String
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  userBadges  UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id         String   @id @default(cuid())
+  userId     String
+  badgeId    String
+  unlockedAt DateTime @default(now())
+  badge      Badge    @relation(fields: [badgeId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model UserGoal {
+  id           String    @id @default(cuid())
+  userId       String
+  name         String
+  description  String?
+  targetValue  Float
+  currentValue Float     @default(0)
+  unit         String
+  deadline     DateTime?
+  isCompleted  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_goals")
+}
+
+model MonthlyProgress {
+  id              String   @id @default(cuid())
+  userId          String
+  year            Int
+  month           Int
+  averageScore    Float
+  totalSessions   Int
+  totalMinutes    Int
+  improvementRate Float
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, year, month])
+  @@map("monthly_progress")
+}

@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  displayName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  recordings UserRecording[]
+  analytics  UserAnalytics?
+  badges     UserBadge[]
+
+  @@map("users")
+}
+
+model UserRecording {
+  id              String   @id @default(cuid())
+  userId          String
+  createdAt       DateTime @default(now())
+  duration        Int      // in seconds
+  audioUrl        String
+  videoUrl        String?
+  transcription   String
+  confidence      Float
+  speakingPace    Int      // words per minute
+  clarityScore    Float
+  sentimentScore  Float
+  fillerWordCount Int
+  pauseCount      Int
+  averagePause    Float
+  primaryInsight  String
+  improvementTips String[]
+  strengths       String[]
+  weaknesses      String[]
+  userFeedback    String?
+  practiceType    String   @default("freeform") // 'freeform' | 'exercise' | 'presentation'
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_recordings")
+}
+
+model UserAnalytics {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  totalRecordings      Int      @default(0)
+  totalPracticeTime    Int      @default(0) // in seconds
+  currentStreak        Int      @default(0)
+  longestStreak        Int      @default(0)
+  averageConfidence    Float    @default(0)
+  averagePace          Int      @default(0)
+  averageClarity       Float    @default(0)
+  averageFillers       Float    @default(0)
+  confidenceChange     Float    @default(0)
+  paceChange           Float    @default(0)
+  clarityChange        Float    @default(0)
+  fillerChange         Float    @default(0)
+  lastPracticeDate     DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_analytics")
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  category    String   // 'milestone' | 'consistency' | 'improvement' | 'special'
+  iconName    String
+  criteria    String   // JSON string of BadgeCriteria
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id         String   @id @default(cuid())
+  userId     String
+  badgeId    String
+  unlockedAt DateTime @default(now())
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
